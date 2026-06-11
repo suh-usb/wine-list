@@ -422,10 +422,9 @@
 <script>
 // ── 설정 ──────────────────────────────────────────
 const PASSWORD = "asdf7410*";
-const BLOG_BASE = "https://oaklifeisgood.tistory.com";
+const BLOG_RSS = "/api/rss";
 const CACHE_KEY = "wine_cache";
 const CACHE_TS_KEY = "wine_cache_ts";
-const CORS_PROXY = "https://corsproxy.io/?";
 
 let allWines = [];
 let currentFilter = 'all';
@@ -468,64 +467,31 @@ function setStatus(msg) {
   document.getElementById('status-bar').textContent = msg;
 }
 
-// ── 블로그 글 목록 수집 ───────────────────────────
-async function fetchPostList() {
-  const wines = [];
-  let page = 1;
-  while (true) {
-    const url = `${BLOG_BASE}/?page=${page}`;
-    const resp = await fetch(CORS_PROXY + encodeURIComponent(url));
-    const html = await resp.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // 글 링크 수집 (wine 카테고리만)
-    const links = [...doc.querySelectorAll('a[href]')]
-      .map(a => a.getAttribute('href'))
-      .filter(h => h && h.match(/oaklifeisgood\.tistory\.com\/\d+$/))
-      .map(h => h.replace(/.*tistory\.com/, ''));
-
-    const unique = [...new Set(links)].filter(p => !wines.find(w => w.path === p));
-    if (unique.length === 0) break;
-
-    for (const path of unique) {
-      // 카테고리 필터: 여행 글 제외
-      const linkEl = doc.querySelector(`a[href*="${path}"]`);
-      const text = linkEl ? linkEl.textContent : '';
-      if (text.includes('여행')) continue;
-      wines.push({ path });
-    }
-
-    // 다음 페이지 있는지 확인
-    const nextLink = doc.querySelector('a[href*="page=' + (page+1) + '"]');
-    if (!nextLink) break;
-    page++;
-    if (page > 7) break; // 최대 7페이지
-  }
-  return wines;
+// ── RSS 파싱 ─────────────────────────────────────
+async function fetchRSS() {
+  const resp = await fetch(BLOG_RSS);
+  const text = await resp.text();
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, 'text/xml');
+  return [...xml.querySelectorAll('item')];
 }
 
-// ── 개별 글 파싱 ─────────────────────────────────
-async function fetchWinePost(path) {
-  try {
-    const url = `${BLOG_BASE}${path}`;
-    const resp = await fetch(CORS_PROXY + encodeURIComponent(url));
-    const html = await resp.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+function parseItem(item) {
+  const title = item.querySelector('title')?.textContent?.trim() || '';
+  const link = item.querySelector('link')?.textContent?.trim() || '';
+  const category = item.querySelector('category')?.textContent?.trim() || '';
+  
+  // 여행 글 제외
+  if (category.includes('여행') || title.includes('여행')) return null;
 
-    const title = doc.querySelector('h2.tit-post, .tit_post, h2[class*="title"], .area_title h2, .post-header h1')?.textContent?.trim()
-      || doc.querySelector('title')?.textContent?.replace(' :: 술쟁이 와인 노트 🍷', '').trim()
-      || '';
+  // RSS description에서 본문 텍스트 추출
+  const descRaw = item.querySelector('description')?.textContent || '';
+  const descDoc = new DOMParser().parseFromString(descRaw, 'text/html');
+  const body = descDoc.body?.textContent || '';
 
-    const body = doc.querySelector('.entry-content, .tt_article_useless_p_margin, #content-inner, .contents_style, article')?.textContent || '';
+  const path = link.replace('https://oaklifeisgood.tistory.com', '');
 
-    // 📌 요약 섹션 파싱
-    const wineData = parseWineData(body, title, path);
-    return wineData;
-  } catch (e) {
-    return null;
-  }
+  return parseWineData(body, title, path);
 }
 
 function parseWineData(body, title, path) {
@@ -535,30 +501,34 @@ function parseWineData(body, title, path) {
     return m ? m[1].replace(/[*_]/g, '').trim() : '';
   };
 
-  // 제목에서 빈티지 추출
-  const vintageMatch = title.match(/\b(19|20)\d{2}\b/);
-  const vintage = vintageMatch ? vintageMatch[0] : (get('빈티지') || 'NV');
+  // 제목에서 이모지 제거
+  const cleanTitle = title.replace(/[\p{Emoji}]/gu, '').trim();
 
-  // 와인명: 이모지 제거
-  const cleanTitle = title.replace(/[\u{1F300}-\u{1FFFF}]|\u200d|[\uD800-\uDFFF]|[☕🍎🍊🫧🍂🦪🌊🌹🛖🍵🪨🌿🍒🖍🫧🪔🍐🍏🍯🥬🫜🍶🐑🍸💐🫜🍋🌹✏️🎭🧲🍓🥜]/gu, '').trim();
+  // 빈티지: 제목 또는 본문에서
+  const vintageMatch = cleanTitle.match(/\b(19|20)\d{2}\b/) || body.match(/빈티지[:\s]+([^\n]+)/);
+  const vintage = vintageMatch ? vintageMatch[1] || vintageMatch[0] : (get('빈티지') || 'NV');
 
-  // 지역 파싱 → 국가 추출
-  const region = get('지역') || get('region') || '';
+  // 지역 → 국가
+  const region = get('지역') || '';
   let country = 'France';
-  if (region.toLowerCase().includes('italy') || region.toLowerCase().includes('이탈리아')) country = 'Italy';
-  else if (region.toLowerCase().includes('usa') || region.toLowerCase().includes('미국') || region.toLowerCase().includes('california')) country = 'USA';
-  else if (region.toLowerCase().includes('spain') || region.toLowerCase().includes('스페인') || region.toLowerCase().includes('rioja')) country = 'Spain';
+  if (region.toLowerCase().includes('italy') || region.includes('이탈리아')) country = 'Italy';
+  else if (region.toLowerCase().includes('usa') || region.includes('미국') || region.toLowerCase().includes('california')) country = 'USA';
+  else if (region.toLowerCase().includes('spain') || region.includes('스페인') || region.toLowerCase().includes('rioja')) country = 'Spain';
 
-  // 테이스팅 노트 추출
-  const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|$)/i);
-  const tasting = tastingMatch ? tastingMatch[1].replace(/[✔️▶]/g, '').trim() : '';
+  // 테이스팅 노트
+  const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|생산자|$)/i);
+  const tasting = tastingMatch ? tastingMatch[1].replace(/[✔️▶✅]/g, '').trim() : '';
+
+  // 지역 표시: 국가 이후 부분만
+  const regionDisplay = region.includes(',')
+    ? region.split(',').slice(1).join(',').trim()
+    : region;
 
   return {
     path,
     title: cleanTitle,
     vintage,
-    producer: get('생산자') || get('생산자/와이너리') || '',
-    region: region.split(',').slice(1).join(',').trim() || region,
+    region: regionDisplay,
     country,
     variety: get('품종') || '',
     abv: get('도수') || '',
@@ -584,26 +554,22 @@ async function loadWines(forceRefresh) {
 
   btn.classList.add('spinning');
   listEl.innerHTML = '<div class="state-msg">블로그에서 와인 목록을 가져오는 중…</div>';
-  setStatus('');
+  setStatus('불러오는 중…');
 
   try {
-    setStatus('포스팅 목록 수집 중…');
-    const posts = await fetchPostList();
-    setStatus(`${posts.length}개 포스팅 발견. 상세 정보 파싱 중…`);
+    const items = await fetchRSS();
+    setStatus(`${items.length}개 포스팅 파싱 중…`);
 
-    const wines = [];
-    for (let i = 0; i < posts.length; i++) {
-      setStatus(`파싱 중… (${i+1}/${posts.length})`);
-      const wine = await fetchWinePost(posts[i].path);
-      if (wine && wine.title) wines.push(wine);
-      await new Promise(r => setTimeout(r, 150)); // rate limit 방지
-    }
+    const wines = items
+      .map(item => parseItem(item))
+      .filter(w => w && w.title);
 
-    allWines = wines.filter(w => w.title && !w.title.includes('여행'));
+    allWines = wines;
     setCache(allWines);
     setStatus(`총 ${allWines.length}종 · 마지막 업데이트: ${new Date().toLocaleDateString('ko-KR')}`);
     renderWines();
   } catch (e) {
+    console.error(e);
     listEl.innerHTML = '<div class="state-msg">불러오기 실패. 잠시 후 다시 시도해주세요.</div>';
     setStatus('');
   } finally {
