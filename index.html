@@ -164,6 +164,58 @@
     gap: 1rem;
   }
 
+  .search-wrap {
+    max-width: 900px;
+    margin: 1rem auto 0;
+    padding: 0 2rem;
+  }
+
+  #search-input {
+    width: 100%;
+    background: rgba(255,255,255,0.35);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'Noto Serif KR', serif;
+    font-size: 0.85rem;
+    padding: 0.7rem 0.85rem;
+    outline: none;
+  }
+
+  #search-input:focus { border-color: var(--gold); }
+  #search-input::placeholder { color: var(--muted); }
+
+  .stats {
+    max-width: 900px;
+    margin: 1.25rem auto 0;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--rule);
+  }
+
+  .stat {
+    background: var(--parchment);
+    padding: 0.9rem 1rem;
+  }
+
+  .stat strong {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.45rem;
+    font-weight: 400;
+    color: var(--red-wine);
+  }
+
+  .stat span {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
   .filter-group {
     display: flex; gap: 0.5rem; flex-wrap: wrap;
   }
@@ -291,7 +343,6 @@
     text-overflow: ellipsis;
   }
   .wine-row .col-note { text-align: center; }
-  .wine-row .col-note { text-align: center; }
 
   .tasting-toggle {
     background: transparent;
@@ -307,6 +358,16 @@
     white-space: nowrap;
   }
   .tasting-toggle:hover { border-color: var(--gold); color: var(--red-wine); }
+
+  .post-link {
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  .post-link:hover {
+    color: var(--red-wine);
+    border-bottom-color: var(--gold);
+  }
 
   .tasting-note-row {
     display: none;
@@ -333,6 +394,7 @@
     .wine-row .col-vintage { grid-column: 2; grid-row: 1; }
     .wine-row .col-region { grid-column: 1; grid-row: 2; font-size: 0.72rem; }
     .wine-row .col-variety { display: none; }
+    .wine-row .col-abv { display: none; }
     .wine-row .col-note { grid-column: 2; grid-row: 2; }
   }
 
@@ -363,6 +425,7 @@
     .wine-meta { gap: 0.8rem; }
     .wine-name { font-size: 1rem; }
     .controls { flex-direction: column; align-items: flex-start; }
+    .stats { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -400,6 +463,10 @@
       <button class="filter-btn" onclick="setFilter('Italy', this)">🇮🇹 Italy</button>
       <button class="filter-btn" onclick="setFilter('USA', this)">🇺🇸 USA</button>
       <button class="filter-btn" onclick="setFilter('Spain', this)">🇪🇸 Spain</button>
+      <button class="filter-btn" onclick="setFilter('Germany', this)">🇩🇪 Germany</button>
+      <button class="filter-btn" onclick="setFilter('Australia', this)">🇦🇺 Australia</button>
+      <button class="filter-btn" onclick="setFilter('Chile', this)">🇨🇱 Chile</button>
+      <button class="filter-btn" onclick="setFilter('Other', this)">Other</button>
     </div>
     <button class="refresh-btn" id="refresh-btn" onclick="loadWines(true)">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -410,6 +477,16 @@
     </button>
   </div>
 
+  <div class="search-wrap">
+    <input id="search-input" type="search" placeholder="와인명, 지역, 품종으로 검색" autocomplete="off">
+  </div>
+
+  <div class="stats" id="stats" aria-label="와인 기록 요약">
+    <div class="stat"><strong>0</strong><span>Total Bottles</span></div>
+    <div class="stat"><strong>0</strong><span>Countries</span></div>
+    <div class="stat"><strong>0</strong><span>With Notes</span></div>
+  </div>
+
   <div id="status-bar"></div>
   <div id="wine-list"><div class="state-msg">와인 리스트를 불러오는 중…</div></div>
 
@@ -418,18 +495,27 @@
 
 <script>
 // ── 설정 ──────────────────────────────────────────
-const PASSWORD = "asdf7410*";
+const PASSWORD_HASH = "9875add235b87ac23789593cd657837e6fa9ffed5f7f8fd9cf12340aee38b927";
 const BLOG_RSS = "/api/rss";
 const CACHE_KEY = "wine_cache";
 const CACHE_TS_KEY = "wine_cache_ts";
+const CACHE_VERSION_KEY = "wine_cache_version";
+const CACHE_VERSION = "2";
 
 let allWines = [];
 let currentFilter = 'all';
+let searchQuery = '';
 
 // ── 잠금 해제 ─────────────────────────────────────
-function unlock() {
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function unlock() {
   const val = document.getElementById('password-input').value;
-  if (val === PASSWORD) {
+  if (await sha256(val) === PASSWORD_HASH) {
     document.getElementById('lock-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     loadWines(false);
@@ -444,9 +530,15 @@ document.getElementById('password-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') unlock();
 });
 
+document.getElementById('search-input').addEventListener('input', e => {
+  searchQuery = e.target.value.trim().toLowerCase();
+  renderWines();
+});
+
 // ── 캐시 ─────────────────────────────────────────
 function getCache() {
   try {
+    if (localStorage.getItem(CACHE_VERSION_KEY) !== CACHE_VERSION) return null;
     const data = localStorage.getItem(CACHE_KEY);
     return data ? JSON.parse(data) : null;
   } catch { return null; }
@@ -456,6 +548,7 @@ function setCache(wines) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(wines));
     localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+    localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
   } catch {}
 }
 
@@ -467,19 +560,25 @@ function setStatus(msg) {
 // ── RSS 파싱 ─────────────────────────────────────
 async function fetchRSS() {
   const resp = await fetch(BLOG_RSS);
+  if (!resp.ok) throw new Error(`RSS 요청 실패: ${resp.status}`);
   const text = await resp.text();
   const parser = new DOMParser();
   const xml = parser.parseFromString(text, 'text/xml');
+  if (xml.querySelector('parsererror')) throw new Error('RSS XML 파싱 실패');
   return [...xml.querySelectorAll('item')];
 }
 
 function parseItem(item) {
-  const title = item.querySelector('title')?.textContent?.trim() || '';
+  const title = decodeEntities(item.querySelector('title')?.textContent?.trim() || '');
   const link = item.querySelector('link')?.textContent?.trim() || '';
-  const category = item.querySelector('category')?.textContent?.trim() || '';
+  const categories = [...item.querySelectorAll('category')]
+    .map(el => decodeEntities(el.textContent?.trim() || ''))
+    .filter(Boolean);
+  const categoryText = categories.join(' ');
+  const publishedAt = item.querySelector('pubDate')?.textContent?.trim() || '';
   
   // 여행 글 제외
-  if (category.includes('여행') || title.includes('여행')) return null;
+  if (categoryText.includes('여행') || title.includes('여행')) return null;
 
   // RSS description에서 본문 텍스트 추출
   const descRaw = item.querySelector('description')?.textContent || '';
@@ -487,34 +586,33 @@ function parseItem(item) {
   const body = descDoc.body?.textContent || '';
 
   const path = link.replace('https://oaklifeisgood.tistory.com', '');
+  const image = descDoc.querySelector('img')?.getAttribute('src') || '';
 
-  return parseWineData(body, title, path);
+  return parseWineData(body, title, path, categories, publishedAt, image);
 }
 
-function parseWineData(body, title, path) {
+function parseWineData(body, title, path, categories, publishedAt, image) {
   const get = (label) => {
-    const regex = new RegExp(label + '[:\\s]+([^\\n]+)', 'i');
+    const regex = new RegExp(`${label}\\s*[:：]\\s*([^\\n]+)`, 'i');
     const m = body.match(regex);
     return m ? m[1].replace(/[*_]/g, '').trim() : '';
   };
 
-  // 제목에서 이모지 제거
-  const cleanTitle = title.replace(/[\p{Emoji}]/gu, '').trim();
+  // 제목에서 장식용 pictograph만 제거한다. \p{Emoji}는 숫자도 잡을 수 있다.
+  const cleanTitle = title.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
 
   // 빈티지: 제목 또는 본문에서
-  const vintageMatch = cleanTitle.match(/\b(19|20)\d{2}\b/) || body.match(/빈티지[:\s]+([^\n]+)/);
-  const vintage = vintageMatch ? vintageMatch[1] || vintageMatch[0] : (get('빈티지') || 'NV');
+  const titleYear = cleanTitle.match(/\b(?:19|20)\d{2}\b/)?.[0];
+  const bodyVintage = get('빈티지');
+  const vintage = titleYear || bodyVintage || 'NV';
 
   // 지역 → 국가
   const region = get('지역') || '';
-  let country = 'France';
-  if (region.toLowerCase().includes('italy') || region.includes('이탈리아')) country = 'Italy';
-  else if (region.toLowerCase().includes('usa') || region.includes('미국') || region.toLowerCase().includes('california')) country = 'USA';
-  else if (region.toLowerCase().includes('spain') || region.includes('스페인') || region.toLowerCase().includes('rioja')) country = 'Spain';
+  const country = detectCountry(`${region} ${categories.join(' ')}`);
 
   // 테이스팅 노트
-  const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|생산자|$)/i);
-  const tasting = tastingMatch ? tastingMatch[1].replace(/[✔️▶✅]/g, '').trim() : '';
+  const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|생산자|끝\.|$)/i);
+  const tasting = tastingMatch ? normalizeText(tastingMatch[1].replace(/[✔▶✅]/g, '')) : '';
 
   // 지역: 마지막 단어만 (Gevrey-Chambertin, Barolo 등)
   const regionFull = region;
@@ -541,14 +639,45 @@ function parseWineData(body, title, path) {
 
   return {
     path,
+    url: `https://oaklifeisgood.tistory.com${path}`,
     title: cleanTitle,
     vintage,
     region: regionDisplay,
+    regionFull,
     country,
     variety: varietyDisplay,
     abv: abvRaw,
     tasting,
+    categories,
+    publishedAt,
+    image,
   };
+}
+
+function decodeEntities(text) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
+function normalizeText(text) {
+  return text
+    .replace(/\u200d/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+/g, ' ')
+    .trim();
+}
+
+function detectCountry(text) {
+  const source = text.toLowerCase();
+  if (source.includes('italy') || source.includes('이탈리아') || source.includes('barolo') || source.includes('toscana')) return 'Italy';
+  if (source.includes('usa') || source.includes('미국') || source.includes('california') || source.includes('napa')) return 'USA';
+  if (source.includes('spain') || source.includes('스페인') || source.includes('rioja') || source.includes('priorat')) return 'Spain';
+  if (source.includes('germany') || source.includes('독일') || source.includes('mosel')) return 'Germany';
+  if (source.includes('australia') || source.includes('호주')) return 'Australia';
+  if (source.includes('chile') || source.includes('칠레')) return 'Chile';
+  if (source.includes('france') || source.includes('프랑스') || source.includes('bourgogne') || source.includes('bordeaux') || source.includes('champagne')) return 'France';
+  return 'Other';
 }
 
 // ── 메인 로드 함수 ────────────────────────────────
@@ -607,21 +736,48 @@ function renderWines() {
     ? allWines
     : allWines.filter(w => w.country === currentFilter);
 
+  if (searchQuery) {
+    wines = wines.filter(w => {
+      const haystack = [
+        w.title,
+        w.vintage,
+        w.region,
+        w.regionFull,
+        w.country,
+        w.variety,
+        w.abv,
+        ...(w.categories || []),
+      ].join(' ').toLowerCase();
+      return haystack.includes(searchQuery);
+    });
+  }
+
+  updateStats(wines);
+
   if (wines.length === 0) {
-    listEl.innerHTML = '<div class="state-msg">아직 기록된 와인이 없습니다.</div>';
+    listEl.innerHTML = '<div class="state-msg">조건에 맞는 와인이 없습니다.</div>';
     return;
   }
 
   // 국가별로 그룹핑
   const groups = {};
-  const order = ['France', 'Italy', 'Spain', 'USA', 'Other'];
+  const order = ['France', 'Italy', 'Spain', 'USA', 'Germany', 'Australia', 'Chile', 'Other'];
   wines.forEach(w => {
     const g = order.includes(w.country) ? w.country : 'Other';
     if (!groups[g]) groups[g] = [];
     groups[g].push(w);
   });
 
-  const countryLabel = { France: '🇫🇷 France', Italy: '🇮🇹 Italy', Spain: '🇪🇸 Spain', USA: '🇺🇸 United States', Other: '🌍 Other' };
+  const countryLabel = {
+    France: '🇫🇷 France',
+    Italy: '🇮🇹 Italy',
+    Spain: '🇪🇸 Spain',
+    USA: '🇺🇸 United States',
+    Germany: '🇩🇪 Germany',
+    Australia: '🇦🇺 Australia',
+    Chile: '🇨🇱 Chile',
+    Other: '🌍 Other'
+  };
 
   let html = '';
   for (const country of order) {
@@ -640,25 +796,50 @@ function renderWines() {
     </div>`;
 
     groups[country].forEach((wine) => {
-      const id = `wine-${wine.path.replace(/\//g, '')}`;
+      const id = `wine-${wine.path.replace(/[^a-zA-Z0-9_-]/g, '')}`;
       html += `
       <div class="wine-row">
-        <span class="col-name">${wine.title}</span>
-        <span class="col-vintage">${wine.vintage}</span>
-        <span class="col-region">${wine.region || '—'}</span>
-        <span class="col-variety">${wine.variety || '—'}</span>
-        <span class="col-abv">${wine.abv || '—'}</span>
+        <span class="col-name"><a class="post-link" href="${escapeAttr(wine.url)}" target="_blank" rel="noopener">${escapeHtml(wine.title)}</a></span>
+        <span class="col-vintage">${escapeHtml(wine.vintage)}</span>
+        <span class="col-region" title="${escapeAttr(wine.regionFull || wine.region)}">${escapeHtml(wine.region || '—')}</span>
+        <span class="col-variety">${escapeHtml(wine.variety || '—')}</span>
+        <span class="col-abv">${escapeHtml(wine.abv || '—')}</span>
         <span class="col-note">
           ${wine.tasting
             ? `<button class="tasting-toggle" id="btn-${id}" onclick="toggleNote('${id}')">확인</button>`
             : '—'}
         </span>
       </div>
-      ${wine.tasting ? `<div class="tasting-note-row" id="${id}">${wine.tasting}</div>` : ''}`;
+      ${wine.tasting ? `<div class="tasting-note-row" id="${id}">${escapeHtml(wine.tasting)}</div>` : ''}`;
     });
   }
 
   listEl.innerHTML = html;
+}
+
+function updateStats(wines) {
+  const stats = document.getElementById('stats');
+  const countries = new Set(wines.map(w => w.country).filter(Boolean));
+  const noted = wines.filter(w => w.tasting).length;
+
+  stats.innerHTML = `
+    <div class="stat"><strong>${wines.length}</strong><span>Total Bottles</span></div>
+    <div class="stat"><strong>${countries.size}</strong><span>Countries</span></div>
+    <div class="stat"><strong>${noted}</strong><span>With Notes</span></div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value);
 }
 
 function toggleNote(id) {
