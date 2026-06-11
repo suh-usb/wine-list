@@ -508,10 +508,27 @@ function parseWineData(body, title, path) {
   const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|생산자|$)/i);
   const tasting = tastingMatch ? tastingMatch[1].replace(/[✔️▶✅]/g, '').trim() : '';
 
-  // 지역 표시: 국가 이후 부분만
+  // 지역: 마지막 단어만 (Gevrey-Chambertin, Barolo 등)
+  const regionFull = region;
   const regionDisplay = region.includes(',')
-    ? region.split(',').slice(1).join(',').trim()
-    : region;
+    ? region.split(',').slice(-1)[0].trim()
+    : region.trim();
+
+  // 품종: 단일 100%면 이름만, 블렌딩이면 "CS 60% / ME 40%" 형태로
+  const varietyRaw = get('품종') || '';
+  const varietyParts = varietyRaw.split(/[,\/]/).map(s => s.trim()).filter(Boolean);
+  let varietyDisplay = '';
+  if (varietyParts.length <= 1) {
+    // 단일 품종 - 퍼센트/100 제거
+    varietyDisplay = varietyRaw.replace(/\d+%/g, '').replace(/\b100\b/g, '').trim();
+  } else {
+    // 블렌딩 - 각 품종에서 이름과 퍼센트만 추출해서 짧게
+    varietyDisplay = varietyParts.map(p => {
+      const pct = p.match(/(\d+)%/);
+      const name = p.replace(/\d+%/g, '').trim().split(' ')[0]; // 첫 단어만
+      return pct ? `${name} ${pct[1]}%` : name;
+    }).join(' / ');
+  }
 
   return {
     path,
@@ -519,7 +536,7 @@ function parseWineData(body, title, path) {
     vintage,
     region: regionDisplay,
     country,
-    variety: get('품종') || '',
+    variety: varietyDisplay,
     abv: get('도수') || '',
     tasting,
   };
