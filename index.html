@@ -671,6 +671,136 @@ const TASTE_DIMENSIONS = [
 
 const POSITIVE_TERMS = ['맛있는', '좋음', '좋고', '좋다', '훌륭', '성공', '기대보다', '가성비', '최고', '인상적', '만족'];
 const NEGATIVE_TERMS = ['아쉬', '부족', '약함', '묽', '별로', '실망', '부담', '과함'];
+const RECOMMENDATION_POOL = [
+  {
+    title: 'Domaine Fourrier Gevrey-Chambertin Vieille Vigne',
+    country: 'France',
+    region: 'Gevrey-Chambertin',
+    style: ['floral', 'texture', 'minerality', 'earthy'],
+    reason: '붉은 과실, 장미, 투명한 질감, 흙내음 쪽 반응이 강하면 잘 맞을 가능성이 큽니다.',
+    search: 'https://www.wine-searcher.com/find/domaine+fourrier+gevrey+chambertin+vieille+vigne'
+  },
+  {
+    title: 'Domaine Dujac Morey-Saint-Denis',
+    country: 'France',
+    region: 'Morey-Saint-Denis',
+    style: ['floral', 'spice', 'texture', 'earthy'],
+    reason: '플로럴, 허브, 스파이스, 섬세한 질감 축을 동시에 확인하기 좋은 부르고뉴입니다.',
+    search: 'https://www.wine-searcher.com/find/domaine+dujac+morey+saint+denis'
+  },
+  {
+    title: 'Domaine Sylvain Cathiard Bourgogne Hautes-Côtes de Nuits',
+    country: 'France',
+    region: 'Bourgogne',
+    style: ['floral', 'freshness', 'texture'],
+    reason: '장미와 붉은 과실, 신선한 산도, 맑은 질감 쪽 취향이면 입문급에서도 만족도가 높을 수 있습니다.',
+    search: 'https://www.wine-searcher.com/find/sylvain+cathiard+hautes+cotes+de+nuits'
+  },
+  {
+    title: 'Mugneret-Gibourg Bourgogne Rouge',
+    country: 'France',
+    region: 'Bourgogne',
+    style: ['floral', 'texture', 'freshness'],
+    reason: '부드럽고 투명한 피노 누아, 딸기와 장미 계열을 좋아하는 쪽에 맞춘 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/mugneret+gibourg+bourgogne+rouge'
+  },
+  {
+    title: 'Château Calon-Ségur',
+    country: 'France',
+    region: 'Saint-Estèphe',
+    style: ['structure', 'earthy', 'spice'],
+    reason: '탄닌, 구조감, 삼나무와 흙내음 있는 클래식 보르도 반응이 좋다면 맞을 확률이 높습니다.',
+    search: 'https://www.wine-searcher.com/find/chateau+calon+segur'
+  },
+  {
+    title: 'Château Brane-Cantenac',
+    country: 'France',
+    region: 'Margaux',
+    style: ['structure', 'floral', 'texture', 'spice'],
+    reason: '보르도 구조감은 원하지만 너무 무겁기보다 향과 질감이 같이 있는 쪽으로 추천합니다.',
+    search: 'https://www.wine-searcher.com/find/chateau+brane+cantenac'
+  },
+  {
+    title: 'Château La Conseillante',
+    country: 'France',
+    region: 'Pomerol',
+    style: ['texture', 'richness', 'floral', 'spice'],
+    reason: '부드러운 질감, 진한 과실, 향신료가 같이 있는 우아한 우안 보르도 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/chateau+la+conseillante'
+  },
+  {
+    title: 'Egly-Ouriet Grand Cru Brut',
+    country: 'France',
+    region: 'Champagne',
+    style: ['minerality', 'structure', 'richness', 'freshness'],
+    reason: '미네랄, 산도, 농도 있는 샴페인 쪽을 좋아한다면 만족도가 높을 가능성이 큽니다.',
+    search: 'https://www.wine-searcher.com/find/egly+ouriet+grand+cru+brut'
+  },
+  {
+    title: 'Pierre Peters Les Chétillons',
+    country: 'France',
+    region: 'Le Mesnil-sur-Oger',
+    style: ['minerality', 'freshness', 'texture'],
+    reason: '샤르도네 샴페인의 산도, 석회질 미네랄, 긴장감을 확인하기 좋은 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/pierre+peters+les+chetillons'
+  },
+  {
+    title: 'Dönnhoff Niederhäuser Hermannshöhle Riesling Grosses Gewächs',
+    country: 'Germany',
+    region: 'Nahe',
+    style: ['freshness', 'minerality', 'texture'],
+    reason: '산도와 미네랄 반응이 강한 편이라면 드라이 리슬링 쪽 확장 후보로 좋습니다.',
+    search: 'https://www.wine-searcher.com/find/donnhoff+hermannshohle+riesling+grosses+gewachs'
+  },
+  {
+    title: 'A. J. Adam Hofberg Riesling Kabinett',
+    country: 'Germany',
+    region: 'Mosel',
+    style: ['freshness', 'minerality', 'floral'],
+    reason: '상큼한 산도, 꽃향, 짭짤한 미네랄을 좋아하는 취향에 맞춘 모젤 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/a+j+adam+hofberg+riesling+kabinett'
+  },
+  {
+    title: 'Vietti Barolo Castiglione',
+    country: 'Italy',
+    region: 'Barolo',
+    style: ['floral', 'structure', 'spice', 'earthy'],
+    reason: '장미, 체리, 탄닌, 허브와 흙내음이 있는 쪽으로 부르고뉴 취향을 이탈리아로 확장하기 좋습니다.',
+    search: 'https://www.wine-searcher.com/find/vietti+barolo+castiglione'
+  },
+  {
+    title: 'Produttori del Barbaresco Barbaresco',
+    country: 'Italy',
+    region: 'Barbaresco',
+    style: ['floral', 'structure', 'freshness'],
+    reason: '높은 산도와 장미향, 단단한 탄닌을 좋아한다면 네비올로 기본기를 보기 좋은 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/produttori+del+barbaresco+barbaresco'
+  },
+  {
+    title: 'La Rioja Alta Viña Ardanza Reserva',
+    country: 'Spain',
+    region: 'Rioja',
+    style: ['spice', 'earthy', 'texture', 'freshness'],
+    reason: '스파이스, 숙성감, 부드러운 질감을 좋아하는 축과 잘 맞는 리오하 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/la+rioja+alta+vina+ardanza+reserva'
+  },
+  {
+    title: 'López de Heredia Viña Tondonia Reserva',
+    country: 'Spain',
+    region: 'Rioja',
+    style: ['earthy', 'spice', 'freshness', 'texture'],
+    reason: '올빈 숙성감, 허브와 산도, 복합미 쪽 반응이 좋다면 잘 맞을 가능성이 큽니다.',
+    search: 'https://www.wine-searcher.com/find/lopez+heredia+vina+tondonia+reserva'
+  },
+  {
+    title: 'Ridge Estate Cabernet Sauvignon',
+    country: 'USA',
+    region: 'Santa Cruz Mountains',
+    style: ['structure', 'freshness', 'spice', 'earthy'],
+    reason: '보르도식 구조감은 유지하면서 산도와 허브가 살아있는 미국 후보입니다.',
+    search: 'https://www.wine-searcher.com/find/ridge+estate+cabernet+sauvignon'
+  }
+];
 
 // ── 잠금 해제 ─────────────────────────────────────
 async function sha256(text) {
@@ -1031,14 +1161,15 @@ function renderTasteProfile() {
           <div class="chips">
             ${topDimensions.map(dim => `<span class="chip">${escapeHtml(dim.label)}</span>`).join('')}
           </div>
+          <p class="profile-summary">아래 후보는 기존 시음 기록과 같은 병을 제외하고, 자주 나온 감각 축과 가까운 스타일로 고른 새 와인입니다.</p>
         </section>
 
         <section class="profile-section">
-          <h3>다음 병 후보</h3>
+          <h3>새로 마셔볼 후보</h3>
           <div class="recommend-list">
             ${profile.recommendations.map(wine => `
               <div class="recommend-item">
-                <a href="${escapeAttr(wine.url)}" target="_blank" rel="noopener">${escapeHtml(wine.title)}</a>
+                <a href="${escapeAttr(wine.search)}" target="_blank" rel="noopener">${escapeHtml(wine.title)}</a>
                 <div class="recommend-meta">${escapeHtml([wine.country, wine.region, wine.vintage].filter(Boolean).join(' · '))}</div>
                 <div class="recommend-reason">${escapeHtml(wine.reason)}</div>
               </div>
@@ -1077,13 +1208,16 @@ function buildTasteProfile(wines) {
     .slice(0, 16);
 
   const topKeys = dimensions.slice(0, 4).map(dim => dim.key);
-  const recommendations = scored
-    .map(item => {
-      const styleScore = topKeys.reduce((sum, key) => sum + item.scores[key], 0);
-      const total = styleScore + item.positive * 2 - item.negative;
-      return { ...item.wine, total, reason: recommendationReason(item.wine, item.scores, dimensions) };
+  const tastedTitles = wines.map(wine => normalizeWineName(wine.title));
+  const recommendations = RECOMMENDATION_POOL
+    .filter(candidate => !tastedTitles.some(title => isSameWine(title, normalizeWineName(candidate.title))))
+    .map(candidate => {
+      const total = candidate.style.reduce((sum, key) => {
+        const dim = dimensions.find(item => item.key === key);
+        return sum + (dim ? dim.count : 0);
+      }, 0);
+      return { ...candidate, total };
     })
-    .filter(wine => wine.total > 0)
     .sort((a, b) => b.total - a.total)
     .slice(0, 6);
 
@@ -1119,16 +1253,6 @@ function makeTasteSummary(wines, dimensions) {
   return `총 ${wines.length}개의 시음기에서 반복적으로 나온 표현을 기준으로 보면, ${top} 쪽 반응이 가장 강합니다. 국가별로는 ${countries} 비중이 높아서 부르고뉴/보르도 중심의 프랑스 와인 경험이 취향 데이터의 큰 축을 만들고 있습니다.`;
 }
 
-function recommendationReason(wine, scores, dimensions) {
-  const matched = dimensions
-    .filter(dim => scores[dim.key] > 0)
-    .slice(0, 3)
-    .map(dim => dim.label);
-
-  if (!matched.length) return '시음노트의 표현 밀도가 높아 다시 비교해보기 좋은 병입니다.';
-  return `${matched.join(', ')} 표현이 반복되어 현재 취향 축과 잘 맞는 병입니다.`;
-}
-
 function countTerm(text, term) {
   if (!text || !term) return 0;
   return (text.match(new RegExp(escapeRegExp(term), 'gi')) || []).length;
@@ -1136,6 +1260,22 @@ function countTerm(text, term) {
 
 function includesTerm(text, term) {
   return countTerm(text, term) > 0;
+}
+
+function normalizeWineName(title) {
+  return String(title || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\b(?:19|20)\d{2}\b/g, '')
+    .replace(/[^a-z0-9가-힣]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isSameWine(a, b) {
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
 }
 
 function updateStats(wines) {
