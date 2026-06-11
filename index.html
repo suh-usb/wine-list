@@ -260,6 +260,7 @@
     padding: 0.75rem 0.8rem;
     border-bottom: 1px solid var(--cream);
     transition: background 0.1s;
+    overflow: hidden;
   }
   .wine-row:hover { background: rgba(184,154,90,0.05); }
 
@@ -269,12 +270,16 @@
     font-weight: 400;
     color: var(--ink);
     padding-right: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .wine-row .col-vintage {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
     font-size: 0.95rem;
     color: var(--muted);
+    white-space: nowrap;
   }
   .wine-row .col-region,
   .wine-row .col-variety {
@@ -282,6 +287,9 @@
     letter-spacing: 0.04em;
     color: #5a5450;
     padding-right: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .wine-row .col-note { text-align: center; }
 
