@@ -220,6 +220,33 @@
     display: flex; gap: 0.5rem; flex-wrap: wrap;
   }
 
+  .view-tabs {
+    max-width: 900px;
+    margin: 1.5rem auto 0;
+    padding: 0 2rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    font-family: 'Noto Serif KR', serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active,
+  .tab-btn:hover {
+    border-color: var(--red-wine);
+    color: var(--red-wine);
+    background: rgba(107,30,46,0.04);
+  }
+
   .filter-btn {
     background: transparent;
     border: 1px solid var(--rule);
@@ -271,6 +298,115 @@
     max-width: 900px;
     margin: 2rem auto 4rem;
     padding: 0 2rem;
+  }
+
+  #taste-profile {
+    display: none;
+    max-width: 900px;
+    margin: 2rem auto 4rem;
+    padding: 0 2rem;
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .profile-section {
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .profile-section h2,
+  .profile-section h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: var(--red-wine);
+  }
+
+  .profile-section h2 { font-size: 1.35rem; }
+  .profile-section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .profile-summary {
+    margin-top: 0.75rem;
+    line-height: 1.9;
+    color: #4a4540;
+    font-size: 0.9rem;
+  }
+
+  .taste-bar {
+    display: grid;
+    grid-template-columns: 92px 1fr 42px;
+    gap: 0.75rem;
+    align-items: center;
+    margin: 0.65rem 0;
+    font-size: 0.78rem;
+    color: #5a5450;
+  }
+
+  .taste-track {
+    height: 8px;
+    background: var(--cream);
+    border: 1px solid var(--rule);
+  }
+
+  .taste-fill {
+    height: 100%;
+    background: var(--red-wine);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .chip {
+    border: 1px solid var(--rule);
+    color: #4a4540;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.28);
+  }
+
+  .recommend-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .recommend-item {
+    border-left: 2px solid var(--gold);
+    padding: 0.75rem 0 0.75rem 0.9rem;
+    background: rgba(255,255,255,0.22);
+  }
+
+  .recommend-item a {
+    color: var(--ink);
+    text-decoration: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.02rem;
+  }
+
+  .recommend-item a:hover { color: var(--red-wine); }
+
+  .recommend-meta {
+    margin-top: 0.25rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  .recommend-reason {
+    margin-top: 0.45rem;
+    color: #4a4540;
+    font-size: 0.78rem;
+    line-height: 1.7;
   }
 
   /* ── SECTION HEADER (지역별) ── */
@@ -434,6 +570,8 @@
     .wine-name { font-size: 1rem; }
     .controls { flex-direction: column; align-items: flex-start; }
     .stats { grid-template-columns: 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+    .view-tabs { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -496,7 +634,12 @@
   </div>
 
   <div id="status-bar"></div>
+  <div class="view-tabs" aria-label="보기 전환">
+    <button class="tab-btn active" id="tab-list" onclick="setView('list')">와인 리스트</button>
+    <button class="tab-btn" id="tab-profile" onclick="setView('profile')">취향 분석</button>
+  </div>
   <div id="wine-list"><div class="state-msg">와인 리스트를 불러오는 중…</div></div>
+  <div id="taste-profile"><div class="state-msg">취향 데이터를 계산하는 중…</div></div>
 
   <footer>술쟁이 와인 노트 &nbsp;·&nbsp; 개인 시음 기록</footer>
 </div>
@@ -513,6 +656,21 @@ const CACHE_VERSION = "3";
 let allWines = [];
 let currentFilter = 'all';
 let searchQuery = '';
+let currentView = 'list';
+
+const TASTE_DIMENSIONS = [
+  { key: 'freshness', label: '산도와 신선함', terms: ['산도', '산미', '신선', '상큼', '레몬', '자몽', '시트러스', '라임'] },
+  { key: 'structure', label: '구조감과 탄닌', terms: ['탄닌', '구조', '구조감', '강한', '단단', '묵직', '농축', '파워'] },
+  { key: 'minerality', label: '미네랄과 짭짤함', terms: ['미네랄', '짭짤', '짠', '돌', '석회', '해조', '바다'] },
+  { key: 'floral', label: '플로럴과 붉은 과실', terms: ['플로럴', '장미', '꽃', '딸기', '체리', '라즈베리', '붉은'] },
+  { key: 'earthy', label: '흙내음과 숙성감', terms: ['흙', '낙엽', '가죽', '버섯', '숙성', '올빈', '시골', '동물'] },
+  { key: 'spice', label: '스파이스와 허브', terms: ['스파이스', '허브', '후추', '정향', '계피', '삼나무', '향신료'] },
+  { key: 'texture', label: '부드러운 질감', terms: ['부드', '실키', '섬세', '투명', '맑', '편안', '우아'] },
+  { key: 'richness', label: '진한 과실과 풍부함', terms: ['진한', '짙은', '풍부', '과실미', '달달', '잼', '농밀', '꿀'] },
+];
+
+const POSITIVE_TERMS = ['맛있는', '좋음', '좋고', '좋다', '훌륭', '성공', '기대보다', '가성비', '최고', '인상적', '만족'];
+const NEGATIVE_TERMS = ['아쉬', '부족', '약함', '묽', '별로', '실망', '부담', '과함'];
 
 // ── 잠금 해제 ─────────────────────────────────────
 async function sha256(text) {
@@ -695,6 +853,7 @@ async function loadWines(forceRefresh) {
     if (cached && cached.length > 0) {
       allWines = cached;
       renderWines();
+      if (currentView === 'profile') renderTasteProfile();
       const ts = new Date(parseInt(localStorage.getItem(CACHE_TS_KEY) || '0'));
       setStatus(`마지막 업데이트: ${ts.toLocaleDateString('ko-KR')}`);
       return;
@@ -713,6 +872,7 @@ async function loadWines(forceRefresh) {
     setCache(allWines);
     setStatus(`총 ${allWines.length}종 · 마지막 업데이트: ${new Date().toLocaleDateString('ko-KR')}`);
     renderWines();
+    if (currentView === 'profile') renderTasteProfile();
   } catch (e) {
     console.error(e);
     listEl.innerHTML = '<div class="state-msg">불러오기 실패. 잠시 후 다시 시도해주세요.</div>';
@@ -728,6 +888,16 @@ function setFilter(country, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderWines();
+}
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('wine-list').style.display = view === 'list' ? 'block' : 'none';
+  document.getElementById('taste-profile').style.display = view === 'profile' ? 'block' : 'none';
+  document.getElementById('tab-list').classList.toggle('active', view === 'list');
+  document.getElementById('tab-profile').classList.toggle('active', view === 'profile');
+
+  if (view === 'profile') renderTasteProfile();
 }
 
 // ── 렌더링 ────────────────────────────────────────
@@ -818,6 +988,156 @@ function renderWines() {
   listEl.innerHTML = html;
 }
 
+function renderTasteProfile() {
+  const profileEl = document.getElementById('taste-profile');
+  if (!allWines.length) {
+    profileEl.innerHTML = '<div class="state-msg">분석할 와인이 없습니다.</div>';
+    return;
+  }
+
+  const profile = buildTasteProfile(allWines);
+  const topDimensions = profile.dimensions.slice(0, 4);
+
+  profileEl.innerHTML = `
+    <div class="profile-grid">
+      <div>
+        <section class="profile-section">
+          <h2>취향 요약</h2>
+          <p class="profile-summary">${escapeHtml(profile.summary)}</p>
+        </section>
+
+        <section class="profile-section">
+          <h3>자주 반응한 감각</h3>
+          ${profile.dimensions.map(dim => `
+            <div class="taste-bar">
+              <span>${escapeHtml(dim.label)}</span>
+              <div class="taste-track"><div class="taste-fill" style="width:${dim.percent}%"></div></div>
+              <span>${dim.count}</span>
+            </div>
+          `).join('')}
+        </section>
+
+        <section class="profile-section">
+          <h3>취향 키워드</h3>
+          <div class="chips">
+            ${profile.keywords.map(item => `<span class="chip">${escapeHtml(item.word)} ${item.count}</span>`).join('')}
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="profile-section">
+          <h3>잘 맞았던 쪽</h3>
+          <div class="chips">
+            ${topDimensions.map(dim => `<span class="chip">${escapeHtml(dim.label)}</span>`).join('')}
+          </div>
+        </section>
+
+        <section class="profile-section">
+          <h3>다음 병 후보</h3>
+          <div class="recommend-list">
+            ${profile.recommendations.map(wine => `
+              <div class="recommend-item">
+                <a href="${escapeAttr(wine.url)}" target="_blank" rel="noopener">${escapeHtml(wine.title)}</a>
+                <div class="recommend-meta">${escapeHtml([wine.country, wine.region, wine.vintage].filter(Boolean).join(' · '))}</div>
+                <div class="recommend-reason">${escapeHtml(wine.reason)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
+function buildTasteProfile(wines) {
+  const scored = wines.map(wine => scoreWine(wine));
+  const maxCount = Math.max(1, ...TASTE_DIMENSIONS.map(dim => {
+    return scored.reduce((sum, item) => sum + item.scores[dim.key], 0);
+  }));
+
+  const dimensions = TASTE_DIMENSIONS.map(dim => {
+    const count = scored.reduce((sum, item) => sum + item.scores[dim.key], 0);
+    return {
+      ...dim,
+      count,
+      percent: Math.round((count / maxCount) * 100),
+    };
+  }).sort((a, b) => b.count - a.count);
+
+  const keywordCounts = new Map();
+  TASTE_DIMENSIONS.flatMap(dim => dim.terms).forEach(term => {
+    const count = wines.filter(wine => includesTerm(wine.tasting, term)).length;
+    if (count > 0) keywordCounts.set(term, count);
+  });
+
+  const keywords = [...keywordCounts.entries()]
+    .map(([word, count]) => ({ word, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 16);
+
+  const topKeys = dimensions.slice(0, 4).map(dim => dim.key);
+  const recommendations = scored
+    .map(item => {
+      const styleScore = topKeys.reduce((sum, key) => sum + item.scores[key], 0);
+      const total = styleScore + item.positive * 2 - item.negative;
+      return { ...item.wine, total, reason: recommendationReason(item.wine, item.scores, dimensions) };
+    })
+    .filter(wine => wine.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+
+  return {
+    dimensions,
+    keywords,
+    recommendations,
+    summary: makeTasteSummary(wines, dimensions),
+  };
+}
+
+function scoreWine(wine) {
+  const scores = {};
+  TASTE_DIMENSIONS.forEach(dim => {
+    scores[dim.key] = dim.terms.reduce((sum, term) => sum + countTerm(wine.tasting, term), 0);
+  });
+
+  return {
+    wine,
+    scores,
+    positive: POSITIVE_TERMS.reduce((sum, term) => sum + countTerm(wine.tasting, term), 0),
+    negative: NEGATIVE_TERMS.reduce((sum, term) => sum + countTerm(wine.tasting, term), 0),
+  };
+}
+
+function makeTasteSummary(wines, dimensions) {
+  const top = dimensions.slice(0, 3).map(dim => dim.label).join(', ');
+  const countries = Object.entries(wines.reduce((acc, wine) => {
+    acc[wine.country] = (acc[wine.country] || 0) + 1;
+    return acc;
+  }, {})).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([country, count]) => `${country} ${count}병`).join(', ');
+
+  return `총 ${wines.length}개의 시음기에서 반복적으로 나온 표현을 기준으로 보면, ${top} 쪽 반응이 가장 강합니다. 국가별로는 ${countries} 비중이 높아서 부르고뉴/보르도 중심의 프랑스 와인 경험이 취향 데이터의 큰 축을 만들고 있습니다.`;
+}
+
+function recommendationReason(wine, scores, dimensions) {
+  const matched = dimensions
+    .filter(dim => scores[dim.key] > 0)
+    .slice(0, 3)
+    .map(dim => dim.label);
+
+  if (!matched.length) return '시음노트의 표현 밀도가 높아 다시 비교해보기 좋은 병입니다.';
+  return `${matched.join(', ')} 표현이 반복되어 현재 취향 축과 잘 맞는 병입니다.`;
+}
+
+function countTerm(text, term) {
+  if (!text || !term) return 0;
+  return (text.match(new RegExp(escapeRegExp(term), 'gi')) || []).length;
+}
+
+function includesTerm(text, term) {
+  return countTerm(text, term) > 0;
+}
+
 function updateStats(wines) {
   const stats = document.getElementById('stats');
   const countries = new Set(wines.map(w => w.country).filter(Boolean));
@@ -841,6 +1161,10 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function toggleNote(id) {
