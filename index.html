@@ -290,9 +290,14 @@
   .section-line { flex: 1; height: 1px; background: var(--rule); }
 
   /* ── WINE TABLE ── */
-  .wine-table-head {
+  .wine-table-head,
+  .wine-row {
     display: grid;
-    grid-template-columns: 3fr 0.7fr 1.2fr 1.5fr 0.6fr 0.6fr;
+    grid-template-columns: minmax(280px, 3fr) 78px minmax(130px, 1.1fr) minmax(150px, 1.4fr) 70px 78px;
+    column-gap: 0.75rem;
+  }
+
+  .wine-table-head {
     padding: 0.4rem 0.8rem;
     border-bottom: 1px solid var(--rule);
     margin-bottom: 0.2rem;
@@ -306,8 +311,6 @@
   }
 
   .wine-row {
-    display: grid;
-    grid-template-columns: 3fr 0.7fr 1.2fr 1.5fr 0.6fr 0.6fr;
     align-items: start;
     padding: 0.75rem 0.8rem;
     border-bottom: 1px solid var(--cream);
@@ -321,8 +324,11 @@
     font-weight: 400;
     color: var(--ink);
     padding-right: 1rem;
-    word-break: break-word;
+    min-width: 0;
+    word-break: normal;
+    overflow-wrap: anywhere;
     white-space: normal;
+    line-height: 1.45;
   }
   .wine-row .col-vintage {
     font-family: 'Cormorant Garamond', serif;
@@ -338,9 +344,10 @@
     letter-spacing: 0.04em;
     color: #5a5450;
     padding-right: 0.5rem;
-    white-space: nowrap;
+    min-width: 0;
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
   }
   .wine-row .col-note { text-align: center; }
 
@@ -383,12 +390,13 @@
   }
   .tasting-note-row.open { display: block; }
 
-  @media (max-width: 650px) {
+  @media (max-width: 860px) {
     .wine-table-head { display: none; }
     .wine-row {
       grid-template-columns: 1fr auto;
       grid-template-rows: auto auto;
-      gap: 0.2rem 0;
+      gap: 0.35rem 0.75rem;
+      padding: 1rem 0.8rem;
     }
     .wine-row .col-name { grid-column: 1; grid-row: 1; }
     .wine-row .col-vintage { grid-column: 2; grid-row: 1; }
@@ -496,11 +504,11 @@
 <script>
 // ── 설정 ──────────────────────────────────────────
 const PASSWORD_HASH = "9875add235b87ac23789593cd657837e6fa9ffed5f7f8fd9cf12340aee38b927";
-const BLOG_RSS = "/api/rss";
+const WINE_API = "/api/wines";
 const CACHE_KEY = "wine_cache";
 const CACHE_TS_KEY = "wine_cache_ts";
 const CACHE_VERSION_KEY = "wine_cache_version";
-const CACHE_VERSION = "2";
+const CACHE_VERSION = "3";
 
 let allWines = [];
 let currentFilter = 'all';
@@ -557,15 +565,12 @@ function setStatus(msg) {
   document.getElementById('status-bar').textContent = msg;
 }
 
-// ── RSS 파싱 ─────────────────────────────────────
-async function fetchRSS() {
-  const resp = await fetch(BLOG_RSS);
-  if (!resp.ok) throw new Error(`RSS 요청 실패: ${resp.status}`);
-  const text = await resp.text();
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(text, 'text/xml');
-  if (xml.querySelector('parsererror')) throw new Error('RSS XML 파싱 실패');
-  return [...xml.querySelectorAll('item')];
+// ── 데이터 로드 ───────────────────────────────────
+async function fetchWines() {
+  const resp = await fetch(WINE_API);
+  if (!resp.ok) throw new Error(`와인 목록 요청 실패: ${resp.status}`);
+  const data = await resp.json();
+  return data.wines || [];
 }
 
 function parseItem(item) {
@@ -701,12 +706,8 @@ async function loadWines(forceRefresh) {
   setStatus('불러오는 중…');
 
   try {
-    const items = await fetchRSS();
-    setStatus(`${items.length}개 포스팅 파싱 중…`);
-
-    const wines = items
-      .map(item => parseItem(item))
-      .filter(w => w && w.title);
+    setStatus('티스토리 전체 글을 파싱 중…');
+    const wines = await fetchWines();
 
     allWines = wines;
     setCache(allWines);
