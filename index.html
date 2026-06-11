@@ -237,107 +237,96 @@
   }
   .section-line { flex: 1; height: 1px; background: var(--rule); }
 
-  /* ── WINE CARD ── */
-  .wine-card {
-    border-bottom: 1px solid var(--cream);
-    padding: 1.4rem 0;
-    cursor: default;
+  /* ── WINE TABLE ── */
+  .wine-table-head {
+    display: grid;
+    grid-template-columns: 3fr 0.8fr 1.5fr 1.5fr 0.6fr;
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 0.2rem;
   }
-
-  .wine-main {
-    display: flex;
-    align-items: baseline;
-    gap: 0;
-  }
-
-  .wine-name {
+  .wine-table-head span {
     font-family: 'Cormorant Garamond', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wine-row {
+    display: grid;
+    grid-template-columns: 3fr 0.8fr 1.5fr 1.5fr 0.6fr;
+    align-items: center;
+    padding: 0.75rem 0.8rem;
+    border-bottom: 1px solid var(--cream);
+    transition: background 0.1s;
+  }
+  .wine-row:hover { background: rgba(184,154,90,0.05); }
+
+  .wine-row .col-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
     font-weight: 400;
-    font-size: 1.15rem;
-    letter-spacing: 0.02em;
     color: var(--ink);
-    flex: 1;
     padding-right: 1rem;
   }
-
-  .wine-vintage {
+  .wine-row .col-vintage {
     font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
     font-style: italic;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--muted);
-    white-space: nowrap;
   }
-
-  .wine-dots {
-    flex: 1;
-    border-bottom: 1px dotted var(--rule);
-    margin: 0 0.5rem;
-    margin-bottom: 4px;
-    min-width: 20px;
+  .wine-row .col-region,
+  .wine-row .col-variety {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: #5a5450;
+    padding-right: 0.5rem;
   }
-
-  .wine-meta {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 0.45rem;
-    flex-wrap: wrap;
-  }
-
-  .wine-meta-item {
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    text-transform: uppercase;
-    display: flex; align-items: center; gap: 0.4rem;
-  }
-  .wine-meta-item::before {
-    content: '';
-    display: block;
-    width: 3px; height: 3px;
-    border-radius: 50%;
-    background: var(--gold);
-  }
-  .wine-meta-item:first-child::before { display: none; }
-
-  .wine-actions {
-    margin-top: 0.75rem;
-  }
+  .wine-row .col-note { text-align: center; }
 
   .tasting-toggle {
     background: transparent;
-    border: none;
+    border: 1px solid var(--rule);
     color: var(--muted);
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 0.8rem;
-    letter-spacing: 0.1em;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
     cursor: pointer;
-    padding: 0;
-    transition: color 0.15s;
-    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    transition: all 0.15s;
+    white-space: nowrap;
   }
-  .tasting-toggle:hover { color: var(--red-wine); }
-  .tasting-toggle .arrow {
-    font-size: 0.65rem;
-    transition: transform 0.2s;
-    display: inline-block;
-  }
-  .tasting-toggle.open .arrow { transform: rotate(90deg); }
+  .tasting-toggle:hover { border-color: var(--gold); color: var(--red-wine); }
 
-  .tasting-note {
+  .tasting-note-row {
     display: none;
-    margin-top: 1rem;
-    padding: 1rem 1.2rem;
+    padding: 0.8rem 1rem 1rem;
     background: var(--cream);
     border-left: 2px solid var(--gold);
-    font-size: 0.85rem;
-    line-height: 1.8;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.83rem;
+    line-height: 1.9;
     color: #4a4540;
     white-space: pre-line;
     font-family: 'Noto Serif KR', serif;
   }
-  .tasting-note.open { display: block; }
+  .tasting-note-row.open { display: block; }
+
+  @media (max-width: 650px) {
+    .wine-table-head { display: none; }
+    .wine-row {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 0.2rem 0;
+    }
+    .wine-row .col-name { grid-column: 1; grid-row: 1; }
+    .wine-row .col-vintage { grid-column: 2; grid-row: 1; }
+    .wine-row .col-region { grid-column: 1; grid-row: 2; font-size: 0.72rem; }
+    .wine-row .col-variety { display: none; }
+    .wine-row .col-note { grid-column: 2; grid-row: 2; }
+  }
 
   /* ── EMPTY / LOADING ── */
   .state-msg {
@@ -614,30 +603,30 @@ function renderWines() {
     html += `<div class="section-header">
       <h2>${countryLabel[country]}</h2>
       <div class="section-line"></div>
+    </div>
+    <div class="wine-table-head">
+      <span>와인명</span>
+      <span>빈티지</span>
+      <span>생산지</span>
+      <span>품종</span>
+      <span>시음노트</span>
     </div>`;
 
-    groups[country].forEach((wine, i) => {
+    groups[country].forEach((wine) => {
       const id = `wine-${wine.path.replace(/\//g, '')}`;
       html += `
-      <div class="wine-card">
-        <div class="wine-main">
-          <span class="wine-name">${wine.title}</span>
-          <span class="wine-dots"></span>
-          <span class="wine-vintage">${wine.vintage}</span>
-        </div>
-        <div class="wine-meta">
-          ${wine.region ? `<span class="wine-meta-item">${wine.region}</span>` : ''}
-          ${wine.variety ? `<span class="wine-meta-item">${wine.variety}</span>` : ''}
-          ${wine.abv ? `<span class="wine-meta-item">${wine.abv}</span>` : ''}
-        </div>
-        ${wine.tasting ? `
-        <div class="wine-actions">
-          <button class="tasting-toggle" id="btn-${id}" onclick="toggleNote('${id}')">
-            <span class="arrow">▶</span> 시음 노트 확인
-          </button>
-          <div class="tasting-note" id="${id}">${wine.tasting}</div>
-        </div>` : ''}
-      </div>`;
+      <div class="wine-row">
+        <span class="col-name">${wine.title}</span>
+        <span class="col-vintage">${wine.vintage}</span>
+        <span class="col-region">${wine.region || '—'}</span>
+        <span class="col-variety">${wine.variety || '—'}</span>
+        <span class="col-note">
+          ${wine.tasting
+            ? `<button class="tasting-toggle" id="btn-${id}" onclick="toggleNote('${id}')">확인</button>`
+            : '—'}
+        </span>
+      </div>
+      ${wine.tasting ? `<div class="tasting-note-row" id="${id}">${wine.tasting}</div>` : ''}`;
     });
   }
 
@@ -646,9 +635,7 @@ function renderWines() {
 
 function toggleNote(id) {
   const note = document.getElementById(id);
-  const btn = document.getElementById('btn-' + id);
   note.classList.toggle('open');
-  btn.classList.toggle('open');
 }
 </script>
 </body>
