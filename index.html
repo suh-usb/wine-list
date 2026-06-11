@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>술쟁이 와인 노트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Noto+Serif+KR:wght@300;400&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --parchment: #f7f3ed;
+    --cream: #ede8df;
+    --rule: #c8bfb0;
+    --muted: #8a8078;
+    --red-wine: #6b1e2e;
+    --gold: #b89a5a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  /* ── LOCK SCREEN ── */
+  #lock-screen {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 1000;
+    gap: 2rem;
+  }
+
+  #lock-screen h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--parchment);
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+
+  #lock-screen p {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--rule);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  .lock-divider {
+    width: 60px; height: 1px;
+    background: var(--gold);
+  }
+
+  #lock-input-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  }
+
+  #password-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    color: var(--parchment);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    width: 200px;
+    padding: 0.4rem 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #password-input:focus { border-bottom-color: var(--gold); }
+
+  #lock-error {
+    color: #c0706a;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    height: 1rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+
+  #unlock-btn {
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    padding: 0.6rem 2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+  #unlock-btn:hover { background: var(--gold); color: var(--ink); }
+
+  /* ── MAIN ── */
+  #app { display: none; }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 4rem 2rem 2rem;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .header-eyebrow {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.75rem;
+  }
+
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+
+  .header-rule {
+    display: flex; align-items: center; gap: 1rem;
+    margin: 1.5rem auto;
+    max-width: 300px;
+    justify-content: center;
+  }
+  .header-rule span { width: 60px; height: 1px; background: var(--rule); display: block; }
+  .header-rule .diamond {
+    width: 5px; height: 5px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  .header-subtitle {
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    max-width: 900px;
+    margin: 2rem auto 0;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .filter-group {
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    padding: 0.35rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--red-wine);
+    color: var(--red-wine);
+    background: rgba(107,30,46,0.04);
+  }
+
+  .refresh-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Noto Serif KR', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0;
+    transition: color 0.2s;
+  }
+  .refresh-btn:hover { color: var(--ink); }
+  .refresh-btn svg { transition: transform 0.5s; }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── STATUS ── */
+  #status-bar {
+    max-width: 900px;
+    margin: 1rem auto 0;
+    padding: 0 2rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    min-height: 1.2rem;
+  }
+
+  /* ── WINE LIST ── */
+  #wine-list {
+    max-width: 900px;
+    margin: 2rem auto 4rem;
+    padding: 0 2rem;
+  }
+
+  /* ── SECTION HEADER (지역별) ── */
+  .section-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    margin: 2.5rem 0 1rem;
+  }
+  .section-header h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .section-line { flex: 1; height: 1px; background: var(--rule); }
+
+  /* ── WINE CARD ── */
+  .wine-card {
+    border-bottom: 1px solid var(--cream);
+    padding: 1.4rem 0;
+    cursor: default;
+  }
+
+  .wine-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+  }
+
+  .wine-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    flex: 1;
+    padding-right: 1rem;
+  }
+
+  .wine-vintage {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .wine-dots {
+    flex: 1;
+    border-bottom: 1px dotted var(--rule);
+    margin: 0 0.5rem;
+    margin-bottom: 4px;
+    min-width: 20px;
+  }
+
+  .wine-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .wine-meta-item {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .wine-meta-item::before {
+    content: '';
+    display: block;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .wine-meta-item:first-child::before { display: none; }
+
+  .wine-actions {
+    margin-top: 0.75rem;
+  }
+
+  .tasting-toggle {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .tasting-toggle:hover { color: var(--red-wine); }
+  .tasting-toggle .arrow {
+    font-size: 0.65rem;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .tasting-toggle.open .arrow { transform: rotate(90deg); }
+
+  .tasting-note {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--cream);
+    border-left: 2px solid var(--gold);
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: #4a4540;
+    white-space: pre-line;
+    font-family: 'Noto Serif KR', serif;
+  }
+  .tasting-note.open { display: block; }
+
+  /* ── EMPTY / LOADING ── */
+  .state-msg {
+    text-align: center;
+    padding: 4rem 2rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--rule);
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .wine-meta { gap: 0.8rem; }
+    .wine-name { font-size: 1rem; }
+    .controls { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <p class="header-eyebrow" style="color:#8a8078">술쟁이 와인 노트</p>
+  <div class="lock-divider"></div>
+  <h1>🍷</h1>
+  <div id="lock-input-wrap">
+    <input type="password" id="password-input" placeholder="· · · · ·" autocomplete="off">
+    <div id="lock-error"></div>
+    <button id="unlock-btn" onclick="unlock()">ENTER</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <p class="header-eyebrow">Ma Cave Personnelle</p>
+    <h1>술쟁이 와인 노트</h1>
+    <div class="header-rule">
+      <span></span>
+      <div class="diamond"></div>
+      <span></span>
+    </div>
+    <p class="header-subtitle">Carnet de Dégustation</p>
+  </header>
+
+  <div class="controls">
+    <div class="filter-group">
+      <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
+      <button class="filter-btn" onclick="setFilter('France', this)">🇫🇷 France</button>
+      <button class="filter-btn" onclick="setFilter('Italy', this)">🇮🇹 Italy</button>
+      <button class="filter-btn" onclick="setFilter('USA', this)">🇺🇸 USA</button>
+      <button class="filter-btn" onclick="setFilter('Spain', this)">🇪🇸 Spain</button>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadWines(true)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      업데이트
+    </button>
+  </div>
+
+  <div id="status-bar"></div>
+  <div id="wine-list"><div class="state-msg">와인 리스트를 불러오는 중…</div></div>
+
+  <footer>술쟁이 와인 노트 &nbsp;·&nbsp; 개인 시음 기록</footer>
+</div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────
+const PASSWORD = "asdf7410*";
+const BLOG_BASE = "https://oaklifeisgood.tistory.com";
+const CACHE_KEY = "wine_cache";
+const CACHE_TS_KEY = "wine_cache_ts";
+const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+
+let allWines = [];
+let currentFilter = 'all';
+
+// ── 잠금 해제 ─────────────────────────────────────
+function unlock() {
+  const val = document.getElementById('password-input').value;
+  if (val === PASSWORD) {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadWines(false);
+  } else {
+    document.getElementById('lock-error').textContent = '비밀번호가 맞지 않습니다';
+    document.getElementById('password-input').value = '';
+    setTimeout(() => document.getElementById('lock-error').textContent = '', 2000);
+  }
+}
+
+document.getElementById('password-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') unlock();
+});
+
+// ── 캐시 ─────────────────────────────────────────
+function getCache() {
+  try {
+    const data = localStorage.getItem(CACHE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch { return null; }
+}
+
+function setCache(wines) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(wines));
+    localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+  } catch {}
+}
+
+// ── 상태 메시지 ───────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('status-bar').textContent = msg;
+}
+
+// ── 블로그 글 목록 수집 ───────────────────────────
+async function fetchPostList() {
+  const wines = [];
+  let page = 1;
+  while (true) {
+    const url = `${BLOG_BASE}/?page=${page}`;
+    const resp = await fetch(CORS_PROXY + encodeURIComponent(url));
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // 글 링크 수집 (wine 카테고리만)
+    const links = [...doc.querySelectorAll('a[href]')]
+      .map(a => a.getAttribute('href'))
+      .filter(h => h && h.match(/oaklifeisgood\.tistory\.com\/\d+$/))
+      .map(h => h.replace(/.*tistory\.com/, ''));
+
+    const unique = [...new Set(links)].filter(p => !wines.find(w => w.path === p));
+    if (unique.length === 0) break;
+
+    for (const path of unique) {
+      // 카테고리 필터: 여행 글 제외
+      const linkEl = doc.querySelector(`a[href*="${path}"]`);
+      const text = linkEl ? linkEl.textContent : '';
+      if (text.includes('여행')) continue;
+      wines.push({ path });
+    }
+
+    // 다음 페이지 있는지 확인
+    const nextLink = doc.querySelector('a[href*="page=' + (page+1) + '"]');
+    if (!nextLink) break;
+    page++;
+    if (page > 7) break; // 최대 7페이지
+  }
+  return wines;
+}
+
+// ── 개별 글 파싱 ─────────────────────────────────
+async function fetchWinePost(path) {
+  try {
+    const url = `${BLOG_BASE}${path}`;
+    const resp = await fetch(CORS_PROXY + encodeURIComponent(url));
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const title = doc.querySelector('h2.tit-post, .tit_post, h2[class*="title"], .area_title h2, .post-header h1')?.textContent?.trim()
+      || doc.querySelector('title')?.textContent?.replace(' :: 술쟁이 와인 노트 🍷', '').trim()
+      || '';
+
+    const body = doc.querySelector('.entry-content, .tt_article_useless_p_margin, #content-inner, .contents_style, article')?.textContent || '';
+
+    // 📌 요약 섹션 파싱
+    const wineData = parseWineData(body, title, path);
+    return wineData;
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseWineData(body, title, path) {
+  const get = (label) => {
+    const regex = new RegExp(label + '[:\\s]+([^\\n]+)', 'i');
+    const m = body.match(regex);
+    return m ? m[1].replace(/[*_]/g, '').trim() : '';
+  };
+
+  // 제목에서 빈티지 추출
+  const vintageMatch = title.match(/\b(19|20)\d{2}\b/);
+  const vintage = vintageMatch ? vintageMatch[0] : (get('빈티지') || 'NV');
+
+  // 와인명: 이모지 제거
+  const cleanTitle = title.replace(/[\u{1F300}-\u{1FFFF}]|\u200d|[\uD800-\uDFFF]|[☕🍎🍊🫧🍂🦪🌊🌹🛖🍵🪨🌿🍒🖍🫧🪔🍐🍏🍯🥬🫜🍶🐑🍸💐🫜🍋🌹✏️🎭🧲🍓🥜]/gu, '').trim();
+
+  // 지역 파싱 → 국가 추출
+  const region = get('지역') || get('region') || '';
+  let country = 'France';
+  if (region.toLowerCase().includes('italy') || region.toLowerCase().includes('이탈리아')) country = 'Italy';
+  else if (region.toLowerCase().includes('usa') || region.toLowerCase().includes('미국') || region.toLowerCase().includes('california')) country = 'USA';
+  else if (region.toLowerCase().includes('spain') || region.toLowerCase().includes('스페인') || region.toLowerCase().includes('rioja')) country = 'Spain';
+
+  // 테이스팅 노트 추출
+  const tastingMatch = body.match(/테이스팅\s*노트[^\n]*\n([\s\S]*?)(?=서쳐\s*가격|$)/i);
+  const tasting = tastingMatch ? tastingMatch[1].replace(/[✔️▶]/g, '').trim() : '';
+
+  return {
+    path,
+    title: cleanTitle,
+    vintage,
+    producer: get('생산자') || get('생산자/와이너리') || '',
+    region: region.split(',').slice(1).join(',').trim() || region,
+    country,
+    variety: get('품종') || '',
+    abv: get('도수') || '',
+    tasting,
+  };
+}
+
+// ── 메인 로드 함수 ────────────────────────────────
+async function loadWines(forceRefresh) {
+  const btn = document.getElementById('refresh-btn');
+  const listEl = document.getElementById('wine-list');
+
+  if (!forceRefresh) {
+    const cached = getCache();
+    if (cached && cached.length > 0) {
+      allWines = cached;
+      renderWines();
+      const ts = new Date(parseInt(localStorage.getItem(CACHE_TS_KEY) || '0'));
+      setStatus(`마지막 업데이트: ${ts.toLocaleDateString('ko-KR')}`);
+      return;
+    }
+  }
+
+  btn.classList.add('spinning');
+  listEl.innerHTML = '<div class="state-msg">블로그에서 와인 목록을 가져오는 중…</div>';
+  setStatus('');
+
+  try {
+    setStatus('포스팅 목록 수집 중…');
+    const posts = await fetchPostList();
+    setStatus(`${posts.length}개 포스팅 발견. 상세 정보 파싱 중…`);
+
+    const wines = [];
+    for (let i = 0; i < posts.length; i++) {
+      setStatus(`파싱 중… (${i+1}/${posts.length})`);
+      const wine = await fetchWinePost(posts[i].path);
+      if (wine && wine.title) wines.push(wine);
+      await new Promise(r => setTimeout(r, 150)); // rate limit 방지
+    }
+
+    allWines = wines.filter(w => w.title && !w.title.includes('여행'));
+    setCache(allWines);
+    setStatus(`총 ${allWines.length}종 · 마지막 업데이트: ${new Date().toLocaleDateString('ko-KR')}`);
+    renderWines();
+  } catch (e) {
+    listEl.innerHTML = '<div class="state-msg">불러오기 실패. 잠시 후 다시 시도해주세요.</div>';
+    setStatus('');
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── 필터 ─────────────────────────────────────────
+function setFilter(country, btn) {
+  currentFilter = country;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWines();
+}
+
+// ── 렌더링 ────────────────────────────────────────
+function renderWines() {
+  const listEl = document.getElementById('wine-list');
+  let wines = currentFilter === 'all'
+    ? allWines
+    : allWines.filter(w => w.country === currentFilter);
+
+  if (wines.length === 0) {
+    listEl.innerHTML = '<div class="state-msg">아직 기록된 와인이 없습니다.</div>';
+    return;
+  }
+
+  // 국가별로 그룹핑
+  const groups = {};
+  const order = ['France', 'Italy', 'Spain', 'USA', 'Other'];
+  wines.forEach(w => {
+    const g = order.includes(w.country) ? w.country : 'Other';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(w);
+  });
+
+  const countryLabel = { France: '🇫🇷 France', Italy: '🇮🇹 Italy', Spain: '🇪🇸 Spain', USA: '🇺🇸 United States', Other: '🌍 Other' };
+
+  let html = '';
+  for (const country of order) {
+    if (!groups[country]) continue;
+    html += `<div class="section-header">
+      <h2>${countryLabel[country]}</h2>
+      <div class="section-line"></div>
+    </div>`;
+
+    groups[country].forEach((wine, i) => {
+      const id = `wine-${wine.path.replace(/\//g, '')}`;
+      html += `
+      <div class="wine-card">
+        <div class="wine-main">
+          <span class="wine-name">${wine.title}</span>
+          <span class="wine-dots"></span>
+          <span class="wine-vintage">${wine.vintage}</span>
+        </div>
+        <div class="wine-meta">
+          ${wine.region ? `<span class="wine-meta-item">${wine.region}</span>` : ''}
+          ${wine.variety ? `<span class="wine-meta-item">${wine.variety}</span>` : ''}
+          ${wine.abv ? `<span class="wine-meta-item">${wine.abv}</span>` : ''}
+        </div>
+        ${wine.tasting ? `
+        <div class="wine-actions">
+          <button class="tasting-toggle" id="btn-${id}" onclick="toggleNote('${id}')">
+            <span class="arrow">▶</span> 시음 노트 확인
+          </button>
+          <div class="tasting-note" id="${id}">${wine.tasting}</div>
+        </div>` : ''}
+      </div>`;
+    });
+  }
+
+  listEl.innerHTML = html;
+}
+
+function toggleNote(id) {
+  const note = document.getElementById(id);
+  const btn = document.getElementById('btn-' + id);
+  note.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+</script>
+</body>
+</html>
