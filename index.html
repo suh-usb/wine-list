@@ -240,7 +240,7 @@
   /* ── WINE TABLE ── */
   .wine-table-head {
     display: grid;
-    grid-template-columns: 3fr 0.8fr 1.5fr 1.5fr 0.6fr;
+    grid-template-columns: 3fr 0.7fr 1.2fr 1.5fr 0.6fr 0.6fr;
     padding: 0.4rem 0.8rem;
     border-bottom: 1px solid var(--rule);
     margin-bottom: 0.2rem;
@@ -255,12 +255,11 @@
 
   .wine-row {
     display: grid;
-    grid-template-columns: 3fr 0.8fr 1.5fr 1.5fr 0.6fr;
-    align-items: center;
+    grid-template-columns: 3fr 0.7fr 1.2fr 1.5fr 0.6fr 0.6fr;
+    align-items: start;
     padding: 0.75rem 0.8rem;
     border-bottom: 1px solid var(--cream);
     transition: background 0.1s;
-    overflow: hidden;
   }
   .wine-row:hover { background: rgba(184,154,90,0.05); }
 
@@ -270,9 +269,8 @@
     font-weight: 400;
     color: var(--ink);
     padding-right: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    white-space: normal;
   }
   .wine-row .col-vintage {
     font-family: 'Cormorant Garamond', serif;
@@ -282,7 +280,8 @@
     white-space: nowrap;
   }
   .wine-row .col-region,
-  .wine-row .col-variety {
+  .wine-row .col-variety,
+  .wine-row .col-abv {
     font-size: 0.78rem;
     letter-spacing: 0.04em;
     color: #5a5450;
@@ -291,6 +290,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .wine-row .col-note { text-align: center; }
   .wine-row .col-note { text-align: center; }
 
   .tasting-toggle {
@@ -522,21 +522,22 @@ function parseWineData(body, title, path) {
     ? region.split(',').slice(-1)[0].trim()
     : region.trim();
 
-  // 품종: 단일 100%면 이름만, 블렌딩이면 "CS 60% / ME 40%" 형태로
-  const varietyRaw = get('품종') || '';
+  // 품종: 레이블 제거 후 단일이면 이름만, 블렌딩이면 비율 표시
+  const varietyRaw = (get('품종') || '').replace(/^품종\s*[:：]\s*/i, '').trim();
   const varietyParts = varietyRaw.split(/[,\/]/).map(s => s.trim()).filter(Boolean);
   let varietyDisplay = '';
   if (varietyParts.length <= 1) {
-    // 단일 품종 - 퍼센트/100 제거
     varietyDisplay = varietyRaw.replace(/\d+%/g, '').replace(/\b100\b/g, '').trim();
   } else {
-    // 블렌딩 - 각 품종에서 이름과 퍼센트만 추출해서 짧게
     varietyDisplay = varietyParts.map(p => {
       const pct = p.match(/(\d+)%/);
-      const name = p.replace(/\d+%/g, '').trim().split(' ')[0]; // 첫 단어만
+      const name = p.replace(/\d+%/g, '').trim().split(' ')[0];
       return pct ? `${name} ${pct[1]}%` : name;
     }).join(' / ');
   }
+
+  // 도수: 레이블 제거
+  const abvRaw = (get('도수') || '').replace(/^도수\s*[:：]\s*/i, '').trim();
 
   return {
     path,
@@ -545,7 +546,7 @@ function parseWineData(body, title, path) {
     region: regionDisplay,
     country,
     variety: varietyDisplay,
-    abv: get('도수') || '',
+    abv: abvRaw,
     tasting,
   };
 }
@@ -634,6 +635,7 @@ function renderWines() {
       <span>빈티지</span>
       <span>생산지</span>
       <span>품종</span>
+      <span>도수</span>
       <span>시음노트</span>
     </div>`;
 
@@ -645,6 +647,7 @@ function renderWines() {
         <span class="col-vintage">${wine.vintage}</span>
         <span class="col-region">${wine.region || '—'}</span>
         <span class="col-variety">${wine.variety || '—'}</span>
+        <span class="col-abv">${wine.abv || '—'}</span>
         <span class="col-note">
           ${wine.tasting
             ? `<button class="tasting-toggle" id="btn-${id}" onclick="toggleNote('${id}')">확인</button>`
